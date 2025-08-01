@@ -1,0 +1,37 @@
+name: Test Documentation Build
+
+on:
+  pull_request:
+    paths:
+      - 'Sources/**/*.swift'
+      - 'Sources/**/*.docc/**'
+      - '.github/workflows/docs*.yml'
+
+jobs:
+  test-docs:
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Setup Swift
+        uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: "6.1"
+          
+      - name: Build Documentation
+        run: |
+          xcodebuild docbuild \
+            -scheme KDL \
+            -destination 'generic/platform=macOS' \
+            -derivedDataPath .build
+            
+      - name: Verify Documentation Archive
+        run: |
+          # Check that documentation was generated
+          if ! find .build -name "*.doccarchive" -type d | grep -q .; then
+            echo "Error: No documentation archive was generated"
+            exit 1
+          fi
+          
+          echo "Documentation build successful!"

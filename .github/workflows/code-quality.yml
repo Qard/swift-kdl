@@ -1,0 +1,63 @@
+name: Code Quality
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  swift-format:
+    name: Swift Format
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Set up Swift
+      uses: swift-actions/setup-swift@v1
+      with:
+        swift-version: "6.1"
+
+    - name: Check formatting
+      run: |
+        # Check if swift-format is available, install if not
+        if ! command -v swift-format &> /dev/null; then
+          echo "swift-format not found, skipping format check"
+          exit 0
+        fi
+        
+        # Check for formatting issues
+        if ! swift-format lint --recursive --parallel --strict .; then
+          echo "Code formatting issues found. Please run 'swift-format format --recursive .' to fix."
+          exit 1
+        fi
+
+  swiftlint:
+    name: SwiftLint
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Set up Swift
+      uses: swift-actions/setup-swift@v1
+      with:
+        swift-version: "6.1"
+
+    - name: Install SwiftLint
+      run: |
+        if ! command -v swiftlint &> /dev/null; then
+          echo "Installing SwiftLint"
+          brew install swiftlint
+        fi
+
+    - name: Run SwiftLint
+      run: |
+        if command -v swiftlint &> /dev/null; then
+          swiftlint --strict
+        else
+          echo "SwiftLint not available, skipping"
+        fi

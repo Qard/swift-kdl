@@ -1,0 +1,26 @@
+# Code Owners
+
+# Default owners for the entire repository
+* @stephenbelanger
+
+# Core parsing logic
+Sources/KDL/KDLLexer.swift @stephenbelanger
+Sources/KDL/KDLParser.swift @stephenbelanger
+Sources/KDL/KDLToken.swift @stephenbelanger
+Sources/KDL/KDLNode.swift @stephenbelanger
+Sources/KDL/KDLValue.swift @stephenbelanger
+Sources/KDL/KDLError.swift @stephenbelanger
+
+# Encoding/Decoding
+Sources/KDL/KDLDecoder.swift @stephenbelanger
+Sources/KDL/KDLEncoder.swift @stephenbelanger
+
+# Formatting
+Sources/KDL/KDLFormatter.swift @stephenbelanger
+
+# Tests
+Tests/KDLTests/* @stephenbelanger
+
+# Configuration
+Package.swift @stephenbelanger
+.github/workflows/* @stephenbelanger
