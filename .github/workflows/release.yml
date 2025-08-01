@@ -1,0 +1,120 @@
+name: Release
+
+# This workflow handles releases and documentation deployment
+# Documentation is only deployed on releases to ensure it reflects stable versions
+on:
+  push:
+    tags:
+      - 'v*'
+
+# Grant GITHUB_TOKEN permissions for deployment
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  create-release:
+    name: Create Release
+    runs-on: macos-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Set up Swift
+      uses: swift-actions/setup-swift@v2
+      with:
+        swift-version: "6.1.0"
+
+    - name: Build Release
+      run: swift build -c release
+
+    - name: Run Tests
+      run: swift test
+
+    - name: Extract version from tag
+      id: extract_version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ steps.extract_version.outputs.VERSION }}
+        body: |
+          ## KDL Swift ${{ steps.extract_version.outputs.VERSION }}
+
+          ### Documentation
+          View the [online documentation](https://${{ github.repository_owner }}.github.io/kdl-swift/)
+
+          ### Installation
+
+          #### Swift Package Manager
+          ```swift
+          dependencies: [
+              .package(url: "https://github.com/${{ github.repository }}.git", from: "${{ steps.extract_version.outputs.VERSION }}")
+          ]
+          ```
+        draft: false
+        prerelease: false
+
+  build-docs:
+    name: Build Documentation
+    runs-on: macos-latest
+    needs: create-release
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Swift
+      uses: swift-actions/setup-swift@v2
+      with:
+        swift-version: "6.1.0"
+
+    - name: Build Documentation
+      run: |
+        xcodebuild docbuild \
+          -scheme KDL \
+          -destination 'generic/platform=macOS' \
+          -derivedDataPath .build
+
+    - name: Process Documentation for Web
+      run: |
+        # Find the .doccarchive
+        DOCC_ARCHIVE=$(find .build -name "*.doccarchive" -type d | head -1)
+
+        if [ -z "$DOCC_ARCHIVE" ]; then
+          echo "Error: No .doccarchive found"
+          exit 1
+        fi
+
+        echo "Found documentation archive: $DOCC_ARCHIVE"
+
+        # Transform for static hosting
+        $(xcrun --find docc) process-archive \
+          transform-for-static-hosting "$DOCC_ARCHIVE" \
+          --hosting-base-path /kdl-swift \
+          --output-path docs
+
+    - name: Upload Pages Artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: docs
+
+  deploy-docs:
+    name: Deploy Documentation
+    needs: build-docs
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4

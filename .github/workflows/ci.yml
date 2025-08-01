@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: Test on ${{ matrix.runs-on }} with Swift ${{ matrix.swift }}
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      fail-fast: true
+      matrix:
+        runs-on: [macos-latest, macos-13, ubuntu-latest, ubuntu-22.04]
+        swift: ["6.0.0", "6.1.0"]
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Set up Swift
+      uses: swift-actions/setup-swift@v2
+      with:
+        swift-version: ${{ matrix.swift }}
+
+    - name: Build
+      run: swift build
+
+    - name: Run tests
+      run: swift test
